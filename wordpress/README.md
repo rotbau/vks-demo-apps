@@ -11,6 +11,7 @@ https://kubernetes.io/docs/tutorials/stateful-application/mysql-wordpress-persis
 - gateway API (contour - gateway,route)
 
 ## Components
+- wordpress-namespace.yaml - create wordpress namespace and with label for psa policy
 - mysql-deployment.yaml - deploys mysqld DB, PVC, mysql service, secret for mysql password
 - wordpress-deployment.yaml - deploys wordpress application, pvc
 - wordpress-lb-service.yaml - creates service type load balancer for wordpress frontend
