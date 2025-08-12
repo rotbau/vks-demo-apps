@@ -16,3 +16,7 @@ https://kubernetes.io/docs/tutorials/stateful-application/mysql-wordpress-persis
 - 02-mysql-deployment.yaml - deploys mysqld DB, PVC, mysql service, secret for mysql password
 - 03-wordpress-deployment.yaml - deploys wordpress application, pvc
 - 04-wordpress-lb-service.yaml - creates service type load balancer for wordpress frontend
+
+
+
+NOTICE:  THIS SOFTWARE IS INTENTED FOR DEMONSTRATION PURPOSES ONLY AND THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.

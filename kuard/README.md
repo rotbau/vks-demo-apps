@@ -14,3 +14,6 @@ https://github.com/kubernetes-up-and-running/kuard
 - 01-kuard-namespace.yaml - create kuard namespace and with label for psa policy
 - 02-kuard-deployment.yaml - deploys kuard application
 - 03-kuard-lb-service.yaml - creates l4 service type loadbalancer for kuard app
+
+
+NOTICE:  THIS SOFTWARE IS INTENTED FOR DEMONSTRATION PURPOSES ONLY AND THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
