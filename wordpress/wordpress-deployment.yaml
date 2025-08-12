@@ -11,6 +11,8 @@ spec:
   resources:
     requests:
       storage: 20Gi
+# Uncomment and replace with your sc name if you do not set a default sc
+#  storageClassName: vsan-default-storage-policy
 ---
 apiVersion: apps/v1
 kind: Deployment
