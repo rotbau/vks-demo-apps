@@ -1,0 +1,9 @@
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageRepository
+metadata:
+  name: standard-repo-v2025.6.17
+  namespace: tkg-system
+spec:
+  fetch:
+    imgpkgBundle:
+      image: projects.packages.broadcom.com/vsphere/supervisor/packages/2025.6.17/vks-standard-packages:v2025.6.17
