@@ -1,0 +1,37 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: cluster-autoscaler
+  namespace: test-ns
+spec:
+  clusterNetwork:
+    services:
+      #CAUTION: must not overlap with Supervisor
+      cidrBlocks: ["198.51.100.0/12"]
+    pods:
+      #CAUTION: must not overlap with Supervisor
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+  topology:
+    class: builtin-generic-v3.3.0
+    version: v1.32.3---vmware.1-fips-vkr.2
+    controlPlane:
+      replicas: 1
+    workers:
+      machineDeployments:
+        - class: node-pool
+          metadata:
+            annotations:
+              cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "2"
+              cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "5"
+          name: node-pool-1
+#          replicas: 2
+    variables:
+      - name: vmClass
+        value: best-effort-medium
+      - name: storageClass
+        value: vsan-default-storage-policy
+      - name: vsphereOptions
+        value:
+          persistentVolumes:
+            defaultStorageClass: vsan-default-storage-policy
