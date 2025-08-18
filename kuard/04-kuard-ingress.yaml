@@ -1,14 +1,18 @@
-apiVersion: projectcontour.io/v1
-kind: HTTPProxy
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: kuard-httpproxy
+  name: kuard-ingress
   namespace: kuard
 spec:
-  virtualhost:
-    fqdn: kuard.foo.bar.com
-  routes:
-    - conditions:
-      - prefix: /
-      services:
-        - name: kuard
-          port: 80
+  rules:
+  - host: kuard.foo.bar.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: kuard
+            port:
+              number: 80
+        pathType: Prefix
+        path: /
+
