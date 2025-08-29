@@ -1,0 +1,2 @@
+export server='https://<supervisor vip or fqdn>'
+export user='administrator@vsphere.local'
