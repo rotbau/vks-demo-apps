@@ -11,6 +11,6 @@ spec:
       matchLabels:
         app: kuard
   externalIPPool: externalippool-l2-vlan105
-  externalIP: 10.0.105.154   #Optional.  If nothing specified next available from pool will be distributed.
+  egressIP: 10.0.105.154   #Optional.  If nothing specified next available from pool will be distributed.
 
 # Use kubectl explain egress for list of all options
