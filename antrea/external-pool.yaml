@@ -1,0 +1,12 @@
+apiVersion: crd.antrea.io/v1beta1
+kind: ExternalIPPool
+metadata:
+    name: externalippool-l2-vlan105 #just a name of this specific pool
+spec:
+    ipRanges:
+    - start: 10.0.105.150 # make sure not to use already used ips
+      end: 10.0.105.155 # should not overlap with worker nodes
+#    - cidr: 10.101.112.0/32  # or you can define a whole range with cidr /32, /27 etc
+    nodeSelector: {} # you can remove the brackets and define which nodes you want below by using labels
+#      matchLabels:
+#        egress-l2: antrea-egress-l2

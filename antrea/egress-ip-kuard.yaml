@@ -1,0 +1,16 @@
+apiVersion: crd.antrea.io/v1beta1
+kind: Egress
+metadata:
+  name: egress-l2-kuard
+spec:
+  appliedTo:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: default
+    podSelector:
+      matchLabels:
+        app: kuard
+  externalIPPool: externalippool-l2-vlan105
+  externalIP: 10.0.105.154   #Optional.  If nothing specified next available from pool will be distributed.
+
+# Use kubectl explain egress for list of all options
