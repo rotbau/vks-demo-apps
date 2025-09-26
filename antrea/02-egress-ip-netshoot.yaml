@@ -6,7 +6,7 @@ spec:
   appliedTo:
     namespaceSelector:
       matchLabels:
-        kubernetes.io/metadata.name: default
+        kubernetes.io/metadata.name: netshoot
     podSelector:
       matchLabels:
         app: netshoot

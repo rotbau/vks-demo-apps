@@ -7,4 +7,4 @@ Based off upstream cluster autoscaler
 - cluster-autoscaler.yaml - example cluster manifest with autoscaler annotations
 - package repo - alternative way to create a package repository for offical VKS packages (instead of vcf or tanzu cli)
 - autoscaler.yaml - alternative kubectl install of cluster autoscaler VKS package (instead of vcf or tanzu cli)
-- app.yaml - test application you can scale to many replicas to enage cluster autoscaler behavior.
+- app-corrected.yaml - test application you can scale to many replicas to enage cluster autoscaler behavior.

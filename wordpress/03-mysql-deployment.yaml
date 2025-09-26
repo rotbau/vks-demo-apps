@@ -82,6 +82,8 @@ spec:
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
+#      imagePullSecrets:
+#      - name: regcred
       volumes:
       - name: mysql-persistent-storage
         persistentVolumeClaim:

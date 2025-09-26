@@ -13,9 +13,10 @@ https://kubernetes.io/docs/tutorials/stateful-application/mysql-wordpress-persis
 
 ## Components
 - 01-wordpress-namespace.yaml - create wordpress namespace and with label for psa policy
-- 02-mysql-deployment.yaml - deploys mysqld DB, PVC, mysql service, secret for mysql password
-- 03-wordpress-deployment.yaml - deploys wordpress application, pvc
-- 04-wordpress-lb-service.yaml - creates service type load balancer for wordpress frontend
+- 02-regcred.yaml - optional if you need to authenticate to pull image (uncommend imagePullSecrets in 03 and 04 manifests)
+- 03-mysql-deployment.yaml - deploys mysqld DB, PVC, mysql service, secret for mysql password
+- 04-wordpress-deployment.yaml - deploys wordpress application, pvc
+- 05-wordpress-lb-service.yaml - creates service type load balancer for wordpress frontend
 
 
 
