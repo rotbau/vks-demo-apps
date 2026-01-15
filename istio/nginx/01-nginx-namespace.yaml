@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nginx-app
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    istio-injection: enabled
+    name: nginx-app

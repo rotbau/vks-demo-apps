@@ -1,0 +1,148 @@
+ istio:
+   ambientMode:
+     enabled: false
+#     ztunnel:
+#       resources:
+#         limits:
+#           cpu: ""
+#           memory: ""
+#         requests:
+#           cpu: 200m
+#           memory: 512Mi
+   enableStrictMTLS: true
+   gateways:
+     egress:
+       autoscaling:
+         enabled: false
+         maxReplicas: 5
+         minReplicas: 1
+       enabled: false
+       namespace: istio-egress
+#       namespaceLimitRange:
+#         defaultLimits:
+#           cpu: ""
+#           memory: ""
+#         defaultRequests:
+#           cpu: 100m
+#           memory: 128Mi
+       priorityClassName: ""
+       replicas: 1
+#       resources:
+#         limits:
+#           cpu: 2000m
+#           memory: 1024Mi
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+     ingress:
+       autoscaling:
+         enabled: false
+         maxReplicas: 5
+         minReplicas: 1
+       enabled: false
+       namespace: istio-ingress
+#       namespaceLimitRange:
+#         defaultLimits:
+#           cpu: ""
+#           memory: ""
+#         defaultRequests:
+#           cpu: 100m
+#           memory: 128Mi
+       priorityClassName: ""
+       replicas: 1
+#       resources:
+#         limits:
+#           cpu: 2000m
+#           memory: 1024Mi
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+   istioCNI:
+     enabled: true
+#     resources:
+#       limits:
+#         cpu: ""
+#         memory: ""
+#       requests:
+#         cpu: 100m
+#         memory: 100Mi
+   meshConfig:
+     accessLogFile: /dev/stdout
+     connectTimeout: 10s
+     enableDNSProxy: false
+     enablePrometheusMerge: true
+     enableTracing: true
+     extensionProviders:
+       - name: jaeger
+         opentelemetry:
+           port: 4317
+           service: jaeger-collector.istio-system.svc.cluster.local
+       - name: zipkin
+         zipkin:
+           port: 4317
+           service: jaeger-collector.istio-system.svc.cluster.local
+     defaultProviders:
+       tracing:
+         - jaeger     
+     ingressControllerMode: STRICT
+     ingressSelector: ingressgateway
+     meshID: ""
+     meshMTLS:
+       minProtocolVersion: TLSV1_2
+#     proxy:
+#       resources:
+#         limits:
+#           cpu: 2000m
+#           memory: 1024Mi
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+#     waypoint:
+#       resources:
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+#         limits:
+#           cpu: "2"
+#           memory: 1Gi
+     trustDomain: cluster.local
+     trustDomainAliases: []
+#     waypoint:
+#       resources:
+#         limits:
+#           cpu: "2"
+#           memory: 1Gi
+#         requests:
+#           cpu: 100m
+#           memory: 128Mi
+   namespace: istio-system
+#   namespaceLimitRange:
+#     defaultLimits:
+#       cpu: ""
+#       memory: ""
+#     defaultRequests:
+#       cpu: 100m
+#       memory: 64Mi
+   pilot:
+     autoscaling:
+       enabled: false
+       maxReplicas: 5
+       minReplicas: 2
+     priorityClassName: ""
+     replicas: 1
+#     resources:
+#       limits:
+#         cpu: ""
+#         memory: ""
+#       requests:
+#         cpu: 500m
+#         memory: 2048Mi
+#   support:
+#     priorityClassName: ""
+#     resources:
+#       limits:
+#         cpu: 250m
+#         memory: 256Mi
+#       requests:
+#         cpu: 100m
+#         memory: 64Mi
