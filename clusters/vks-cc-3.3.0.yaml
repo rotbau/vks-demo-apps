@@ -25,15 +25,15 @@ spec:
   #specify the topology for the cluster
   topology:
     #name of the ClusterClass object to derive the topology
-    class: builtin-generic-v3.4.0
+    class: builtin-generic-v3.3.0
     #kubernetes version of the cluster; format is TKR NAME
-    version: v1.33
+    version: v1.32
     #describe the cluster control plane
     controlPlane:
       #number of control plane nodes
       #integer value 1 or 3
       #NOTE: Production clusters require 3 control plane nodes
-      replicas: 3
+      replicas: 1
       # configure labels and annotations on the control plane Machine objects
       # can be used to override the OS to be used for the control plane nodes
       metadata:
@@ -63,7 +63,7 @@ spec:
           name: node-pool-1
           # number of worker nodes in this pool; integer 0 or more
           # defaults to 1
-          replicas: 3
+          replicas: 2
           metadata:
             annotations:
               # annotation to choose the OS to use for the node pool
@@ -84,7 +84,7 @@ spec:
       #virtual machine class type and size for cluster nodes
       # Required
       - name: vmClass
-        value: guaranteed-medium
+        value: best-effort-large
       #persistent storage class for cluster nodes
       # Required
       - name: storageClass
