@@ -1,0 +1,10 @@
+apiVersion: argocd-service.vsphere.vmware.com/v1alpha1
+kind: ArgoCD
+metadata:
+  name: argocd-shared
+  namespace: argocd-shared
+spec:
+  version: 3.0.19+vmware.1-vks.1
+  applicationSet:
+    enabled: true
+    replicas: 1
