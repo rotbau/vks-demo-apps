@@ -44,8 +44,6 @@ spec:
           run.tanzu.vmware.com/resolve-os-image: os-name=photon
           # To run Ubuntu 22.04
 #          run.tanzu.vmware.com/resolve-os-image: "os-name=ubuntu,os-version=22.04"
-          # To run Ubuntu 24.04
-#          run.tanzu.vmware.com/resolve-os-image: "os-name=ubuntu,os-version=24.04"
       variables:
         overrides:
         # only include variables whose scope includes control plane
@@ -72,8 +70,6 @@ spec:
               run.tanzu.vmware.com/resolve-os-image: os-name=photon
               # To run Ubuntu 22.04
 #              run.tanzu.vmware.com/resolve-os-image: "os-name=ubuntu,os-version=22.04"
-              # To run Ubuntu 24.04
-#              run.tanzu.vmware.com/resolve-os-image: "os-name=ubuntu,os-version=24.04"
           variables:
             overrides:
             # only include variables whose scope includes workers
