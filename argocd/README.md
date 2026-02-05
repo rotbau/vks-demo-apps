@@ -20,29 +20,42 @@ DESCRIPTION:
     The version must follow the pattern: X.Y.Z+vmware.W-vks.V
     Example: "3.0.19+vmware.1-vks.1"
 ```
-3. From the Supervisor Context Install the ArgoCD package using a minimal manifest.  Update the version to match the version returned by the kubect explain command.  Update the instace name and vsphere namespace to match your values.
+3. Prepare the ArgoCD manifest the operation will use to install Argocd to a shared vsphere namespace.  I'm plannint to use appsets with some automation so I've added enabled the applicationset controller and also created a local account and rbac policy so my automation will work.  These are optional.
 ```
 apiVersion: argocd-service.vsphere.vmware.com/v1alpha1
 kind: ArgoCD
 metadata:
   name: argocd-1
-  namespace: argocd-instance-1
+  namespace: argocd-shared
 spec:
   version: 3.0.19+vmware.1-vks.1
+  applicationSet:
+    enabled: true
+    replicas: 1
+  localAccounts:
+    - "cluster-registrar"
+  rbac:
+    policy: |
+      p, role:cluster-manager, clusters, get, *, allow
+      p, role:cluster-manager, clusters, create, *, allow
+      p, role:cluster-manager, clusters, update, *, allow
+      g, cluster-registrar, role:cluster-manager
   ```
-  ```
+4. Deploy ArgoCD manifest
+```
   kubectl apply -f argocd-3.0.19.yaml
   argocd.argocd-service.vsphere.vmware.com/argocd-shared created
 ```
-4. Verify the ArgoCD install completed succesfully
+5. Verify the ArgoCD install completed succesfully
 ```
 k get po -n argocd-shared
-NAME                                  READY   STATUS      RESTARTS   AGE
-argocd-application-controller-0       1/1     Running     0          2m16s
-argocd-redis-f58548c96-lnc6q          1/1     Running     0          2m16s
-argocd-redis-secret-init-qtgwx        0/1     Completed   0          3m3s
-argocd-repo-server-865879ff78-r7f6p   1/1     Running     0          2m16s
-argocd-server-7b8f96cc68-7f7f2        1/1     Running     0          2m16s
+NAME                                                 READY   STATUS      RESTARTS   AGE
+argocd-application-controller-0                       1/1     Running     0          2m16s
+argocd-applicationset-controller-774d8fd5c4-rfzml     1/1     Running     0          2m16s
+argocd-redis-f58548c96-lnc6q                          1/1     Running     0          2m16s
+argocd-redis-secret-init-qtgwx                        0/1     Completed   0          3m3s
+argocd-repo-server-865879ff78-r7f6p                   1/1     Running     0          2m16s
+argocd-server-7b8f96cc68-7f7f2                        1/1     Running     0          2m16s
 ```
 5. Retrieve the service LB IP for argocd server
 ```

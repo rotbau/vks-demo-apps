@@ -8,3 +8,11 @@ spec:
   applicationSet:
     enabled: true
     replicas: 1
+  localAccounts:
+    - "cluster-registrar"
+  rbac:
+    policy: |
+      p, role:cluster-manager, clusters, get, *, allow
+      p, role:cluster-manager, clusters, create, *, allow
+      p, role:cluster-manager, clusters, update, *, allow
+      g, cluster-registrar, role:cluster-manager
