@@ -1,0 +1,145 @@
+fluent_bit:
+  config:
+    filters: |
+      [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     kube.var.log.containers.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude Off
+      [FILTER]
+        Name                  modify
+        Match                 kube.*
+        Add                   text "K8s Container Logs"
+        Copy                  kubernetes k8s
+      [FILTER]
+        Name                  nest
+        Match                 kube.*
+        Operation             lift
+        Nested_Under          kubernetes
+      [FILTER]
+        Name                  modify
+        Match                 kube.*
+        Add                   text "K8s Container logs"
+      [FILTER]
+        Name                  modify
+        Match                 kube_systemd.*
+        Add                   text "Linux Daemon Logs"
+      [FILTER]
+        Name                  modify
+        Match                 auth.*
+        Add                   text "Linux Auth Logs"
+      [FILTER]
+        Name                  modify
+        Match                 apiserver_audit.*
+        Add                   text "Kubernetes API Server Audit Logs"
+    inputs: |
+      [INPUT]
+        Name              tail
+        Tag               kube.*
+        Path              /var/log/containers/*.log
+        Parser            cri
+        DB                /var/log/flb_kube.db
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+      [INPUT]
+        Name                systemd
+        Tag                 kube_systemd.*
+        Path                /var/log/journal
+        DB                  /var/log/flb_kube_systemd.db
+        Systemd_Filter      _SYSTEMD_UNIT=kubelet.service
+        Systemd_Filter      _SYSTEMD_UNIT=containerd.service
+        Read_From_Tail      On
+        Strip_Underscores   On
+      [INPUT]
+        Name              tail
+        Tag               apiserver_audit.*
+        Parser            json
+        Path              /var/log/kubernetes/kube-apiserver.log
+        DB                /var/log/flb_kube_audit.db
+        Mem_Buf_Limit     50MB
+        Refresh_Interval  10
+        Skip_Long_Lines   On
+      [INPUT]
+        Name              tail
+        Tag               auth.*
+        Path              /var/log/audit/auth.log
+        Parser            authlog
+        DB                /var/log/flb_system_auth.db
+        Mem_Buf_Limit     50MB
+        Refresh_Interval  10
+        Skip_Long_Lines   On
+    outputs: |
+      [OUTPUT]
+        Name          http
+        Match         *
+        Host          10.0.100.107
+        Port          9543
+        URI           api/v2/events
+        Format        json
+        tls.debug     4
+        tls           on
+        tls.verify    off
+        json_date_key timestamp
+    parsers: |
+      [PARSER]
+        Name cri
+        Format regex
+        Regex ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<message>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+      [PARSER]
+        Name        authlog
+        Format      regex
+        Regex       ^(?<time>[^ ]* {1,2}*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep   On
+      [PARSER]
+        Name   json
+        Format json
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+    plugins: |
+      [PLUGINS]
+        Path /path/to/out_gstdout.so
+    service: |
+      [Service]
+        Flush         1
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Port     2020
+        HTTP_Listen   0.0.0.0
+    streams: |
+      [STREAM_TASK]
+        Name   cpu_test
+        Exec   CREATE STREAM cpu WITH (tag='results') AS SELECT AVG(cpu_p) from STREAM:cpu_data WINDOW TUMBLING (5 SECOND);
+  daemonset:
+    env: []
+    podAnnotations: {}
+    priorityClassName: ""
+    resources:
+      limits:
+        cpu: ""
+        memory: ""
+      requests:
+        cpu: 200m
+        memory: 256Mi
+    secretName: ""
+  ipv6Primary: false
+namespace: tanzu-system-logging
+nsLimitRange:
+  defaultLimits:
+    cpu: ""
+    memory: ""
+  defaultRequests:
+    cpu: 200m
+    memory: 256Mi

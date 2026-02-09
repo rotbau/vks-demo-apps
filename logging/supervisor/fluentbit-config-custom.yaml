@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-config-custom
+  namespace: vmware-system-logging
+data:
+  filters-custom.conf: |
+    [FILTER]
+        Name           record_modifier
+        Alias          audit_apiserver_modifier
+        Match          audit.apiserver.*
+        Record         hostname ${NODE_NAME}
+        Record         appname audit-kube-apiserver
+        Record         filename kube-apiserver.log
+        Record         log processing-audit-log
+  inputs-custom.conf: |
+    [INPUT]
+        Name              tail
+        Alias             audit_apiserver_tail
+        Tag               audit.apiserver.*
+        Path              /var/log/vmware/audit/kube-apiserver.log
+        DB                /var/log/vmware/fluentbit/flb_audit_apiserver.db
+        Buffer_Max_Size   12MB
+        Mem_Buf_Limit     32MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+  outputs-custom.conf: |
+    [OUTPUT]
+        Name                 syslog
+        Match                *
+        Host                 10.0.100.107
+        Port                 514
+        Mode                 tcp
+        Syslog_Format        rfc5424
+        Syslog_Message_key   log
+        Syslog_Hostname_key  hostname
+        Syslog_Appname_key   appname
+        Syslog_Msgid_key     filename
+
