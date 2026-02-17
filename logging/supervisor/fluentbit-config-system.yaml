@@ -1,0 +1,293 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    name: fluentbit
+  name: fluentbit-config-system
+  namespace: vmware-system-logging
+data:
+  filters-system.conf: |
+    # enrich pod log event with kubernetes metadata.
+    [FILTER]
+        Name                kubernetes
+        Alias               system_pod_kube
+        Match               system-bundle.kube.*
+        Kube_URL            https://localhost:6443
+        tls.verify          Off
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude On
+        Kube_Tag_Prefix     system-bundle.kube.var.log.containers.
+
+    # lift nested metadata under kubernetes to top level for output.
+    [FILTER]
+        Name                nest
+        Alias               system_pod_kube_nest
+        Match               system-bundle.kube.*
+        Operation           lift
+        Nested_under        kubernetes
+
+    # rename pod log record field names to be consistent for output.
+    [FILTER]
+        Name    modify
+        Alias   system_pod_modifier
+        Match   system-bundle.kube.*
+        Rename  container_name appname
+        Rename  host hostname
+        Rename  pod_name procid
+
+    # process systemd logs to whitelist some keys as field keys.
+    [FILTER]
+        Name           record_modifier
+        Alias          systemd_modifier
+        Match          system-bundle.systemd.*
+        Whitelist_key  _CMDLINE
+        Whitelist_key  _EXE
+        Whitelist_key  _HOSTNAME
+        Whitelist_key  _PID
+        Whitelist_key  MESSAGE
+        Whitelist_key  SYSLOG_IDENTIFIER
+        Record         filename systemd
+
+    # rename systemd log record field names to be consistent for output.
+    [FILTER]
+        Name    modify
+        Alias   systemd_modify
+        Match   system-bundle.systemd.*
+        Rename  _CMDLINE cmdline
+        Rename  _EXE exe
+        Rename  _HOSTNAME hostname
+        Rename  _PID procid
+        Rename  SYSLOG_IDENTIFIER appname
+        Rename  MESSAGE log
+
+    # add filename field by extracting the file name from tag for pod logs.
+    [FILTER]
+        Name         lua
+        Alias        system_pod_filename_lua
+        Match        system-bundle.kube.*
+        Code         function add_filename(tag, timestamp, record) record["filename"] = string.gsub(tag, "system%-bundle%.kube%.var%.log%.containers%.", "")  return 2, timestamp, record  end
+        Call         add_filename
+
+    # add filename field by extracting the file name from tag for svc host logs.
+    [FILTER]
+        Name         lua
+        Alias        system_svchost_filename_lua
+        Match        system.svchost.*
+        Code         function add_filename(tag, timestamp, record) record["filename"] = string.gsub(tag, "system%.svchost%.var%.log%.vmware%.svchost%.", "")  return 2, timestamp, record  end
+        Call         add_filename
+
+    # add filename field by extracting the file name from tag for bootstrap logs.
+    [FILTER]
+        Name         lua
+        Alias        system_bootstrap_filename_lua
+        Match        system.bootstrap.*
+        Code         function add_filename(tag, timestamp, record) record["filename"] = string.gsub(tag, "system%.bootstrap%.var%.log%.", "")  return 2, timestamp, record  end
+        Call         add_filename
+
+    # add filename field by extracting the file name from tag for configure-wcp logs.
+    [FILTER]
+        Name         lua
+        Alias        system_imc_filename_lua
+        Match        system.imc.*
+        Code         function add_filename(tag, timestamp, record) record["filename"] = string.gsub(tag, "system%.imc%.var%.log%.vmware%-imc%.", "")  return 2, timestamp, record  end
+        Call         add_filename
+
+    # add filename field by extracting the file name from tag for upgrade logs.
+    [FILTER]
+        Name         lua
+        Alias        system_upgrade_filename_lua
+        Match        system.upgrade.*
+        Code         function add_filename(tag, timestamp, record) record["filename"] = string.gsub(tag, "system%.upgrade%.var%.log%.vmware%.", "")  return 2, timestamp, record  end
+        Call         add_filename
+
+    # add filename field by extracting the file name from tag for update-controller logs.
+    [FILTER]
+        Name         lua
+        Alias        system_update_controller_filename_lua
+        Match        system.update_controller.*
+        Code         function add_filename(tag, timestamp, record) record["filename"] = string.gsub(tag, "system%.update_controller%.var%.log%.update%-controller%.", "")  return 2, timestamp, record  end
+        Call         add_filename
+
+    # add hostname, appname fields for compact etcd logs.
+    [FILTER]
+        Name           record_modifier
+        Alias          system_compact_etcd_modifier
+        Match          system.compact_etcd.*
+        Record         hostname ${NODE_NAME}
+        Record         appname compact-etcd
+
+    # add hostname, appname fields for svc host logs.
+    [FILTER]
+        Name           record_modifier
+        Alias          system_svchost_modifier
+        Match          system.svchost.*
+        Record         hostname ${NODE_NAME}
+        Record         appname svchost
+
+    # add hostname, appname fields for configure-wcp logs.
+    [FILTER]
+        Name           record_modifier
+        Alias          system_imc_modifier
+        Match          system.imc.*
+        Record         hostname ${NODE_NAME}
+        Record         appname imc
+
+    # add hostname, appname fields for bootstrap logs.
+    [FILTER]
+        Name           record_modifier
+        Alias          system_bootstrap_modifier
+        Match          system.bootstrap.*
+        Record         hostname ${NODE_NAME}
+        Record         appname bootstrap
+
+    # add hostname, appname fields for update-controller logs.
+    [FILTER]
+        Name           record_modifier
+        Alias          system_update_controller_modifier
+        Match          system.update_controller.*
+        Record         hostname ${NODE_NAME}
+        Record         appname update-controller
+
+    # add hostname, appname fields for upgrade logs.
+    [FILTER]
+        Name           record_modifier
+        Alias          system_upgrade_modifier
+        Match          system.upgrade.*
+        Record         hostname ${NODE_NAME}
+        Record         appname upgrade
+  inputs-system.conf: |
+    # collect system pods logs on CP VMs by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_pod_tail
+        Tag               system-bundle.kube.*
+        Path              /var/log/containers/*.log
+        Parser            docker
+        DB                /var/log/vmware/fluentbit/flb_kube.db
+        Buffer_Max_Size   12MBb
+        Mem_Buf_Limit     32MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    # collect journal logs from systemd services.
+    [INPUT]
+        Name                systemd
+        Alias               system_systemd
+        Tag                 system-bundle.systemd.*
+        Path                /var/log/journal
+        DB                  /var/log/vmware/fluentbit/flb_systemd.db
+        Read_From_Tail      Off
+
+    # collect compact etcd logs by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_compact_etcd_tail
+        Tag               system.compact_etcd.*
+        Path              /var/log/vmware/compact_etcd*
+        DB                /var/log/vmware/fluentbit/flb_compact_etcd.db
+        Ignore_Older      1m
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    # collect bootstrap logs under /var/log/ by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_bootstrap_tail
+        Tag               system.bootstrap.*
+        Path              /var/log/*.log
+        DB                /var/log/vmware/fluentbit/flb_bootstrap.db
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    # collect configure-wcp logs under /var/log/vmware-imc by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_imc_tail
+        Tag               system.imc.*
+        Path              /var/log/vmware-imc/*
+        DB                /var/log/vmware/fluentbit/flb_imc.db
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    # collect svc host logs by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_svchost_tail
+        Tag               system.svchost.*
+        Path              /var/log/vmware/svchost/*.log
+        DB                /var/log/vmware/fluentbit/flb_svchost.db
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    # collect update controller logs by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_update_controller_tail
+        Tag               system.update_controller.*
+        Path              /var/log/update-controller/*.log
+        DB                /var/log/vmware/fluentbit/flb_update_controller.db
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    # collect upgrade logs by tail.
+    [INPUT]
+        Name              tail
+        Alias             system_upgrade_tail
+        Tag               system.upgrade.*
+        Path              /var/log/vmware/upgrade-*.log
+        DB                /var/log/vmware/fluentbit/flb_upgrade.db
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+  outputs-system.conf: |
+    # write system pod logs and kubelet logs to consolidated.log on file system.
+    [OUTPUT]
+        Name            file
+        Alias           system_bundle_output_file
+        Match_Regex     system-bundle\.(kube|(systemd.kubelet))\.(.*)
+        Path            /var/log/vmware/fluentbit
+        File            consolidated.log
+
+    # write system ncp logs to nsx-ncp.log on file system.
+    [OUTPUT]
+        Name            file
+        Alias           system_bundle_ncp_output_file
+        Match           system-bundle.kube.var.log.containers.nsx*
+        Path            /var/log/vmware/fluentbit
+        File            nsx-ncp.log
+
+    ### Do not modify the following output for syslog, it is reserved for log forwarding to syslog servers configured on VC appliance.
+    # BEGIN VC APPLIANCE SYSLOG OUTPUT
+    #[OUTPUT]
+    #    Name                 syslog
+    #    Alias                system_output_syslog
+    #    Match                system*
+    #    Host                 <syslog-server-host>
+    #    Port                 <syslog-server-port>
+    #    Mode                 <syslog-protocol>
+    #    Syslog_Format        rfc5424
+    #    Syslog_Message_key   log
+    #    Syslog_Hostname_key  hostname
+    #    Syslog_Appname_key   appname
+    #    Syslog_Msgid_key     filename
+    #    Syslog_Procid_key    procid
+    #    Syslog_SD_key        labels
+    # END VC APPLIANCE SYSLOG OUTPUT
+
+    ### Do not modify the name of the markers below, they are used in support/install/kube-online-cluster.sh and support/install/update-controller/vmware_logging.py
+    # BEGIN ELASTICSEARCH OUTPUT
+    # END ELASTICSEARCH OUTPUT
+
+    # [OUTPUT]
+    #     name           syslog
+    #     match          *
+    #     host           <LOGGING_FLUENTBIT_RSYSLOG>
+    #     InstanceName   rsyslog
+    #     Cluster        true
+  parsers-system.conf: |
+    [PARSER]
+        Name              docker
+        Format            json
+        Time_Key          time
+        Time_Format       %Y-%m-%dT%H:%M:%S.%L
+        Decode_Field_As   escaped_utf8  log
+
