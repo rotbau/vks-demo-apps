@@ -1,0 +1,16 @@
+apiVersion: vmoperator.vmware.com/v1alpha2    # For some versions this may be v1alpha3 so get a VM -oyaml to verify if error
+kind: VirtualMachineService
+metadata:
+  name: vks-cluster01-ssh
+  namespace: test-ns # vSphere namespace where the cluster is deployed.
+spec:
+  selector:
+    capv.vmware.com/cluster.name: vks-cluster01 # label on your cluster Nodes 
+    capv.vmware.com/cluster.role: controlplane # label on your cluster Nodes 
+#    capv.vmware.com/cluster.role: node
+  type: LoadBalancer
+  ports:
+    - name: ssh
+      protocol: TCP
+      port: 22
+      targetPort: 22
