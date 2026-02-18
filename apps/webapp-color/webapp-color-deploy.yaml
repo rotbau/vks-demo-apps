@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-color
+  namespace: default
+  labels:
+    app: webapp-color
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp-color
+  template:
+    metadata:
+      labels:
+        app: webapp-color
+    spec:
+      containers:
+      - image: harbor.vdoubleb.com/library/webapp-color:v2
+        name: webapp-color
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        args: ["--color", "pink"]
+        env:
+          - name: APP_MODE
+            value: "prod"

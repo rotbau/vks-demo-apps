@@ -4,14 +4,16 @@ The applications in this git repository can be used to demonstrate basic functio
 ## Demo Applications
 
 - antrea/ - examples of egress and external pool
-- argocd/ - example manifest for installing ArgoCD on a workload cluster using Supervisor ArgoCD Operator
-- autoscaler/ - example cluster manifest, autoscaler package values yaml and test application on VKS
+- addons/argocd/ - example manifest for installing ArgoCD on a workload cluster using Supervisor ArgoCD Operator
+- addons/autoscaler/ - example cluster manifest, autoscaler package values yaml and test application on VKS
+- addons/logging/ - example fluent-bit configurations for Supervisor and VKS clusters
+- addons/istio/ - example data value for istio VKS package and test app
+- addons/contour - example data value files for VKS contour package
 - clusters/ - example VKS cluster manifests
-- istio/ - example data value for istio VKS package and test app
-- kuard/ - simple example stateless app with service options (note Kuard container appears to have disappeared)
-- logging/ - example fluent-bit configurations for Supervisor and VKS clusters
+- apps/wordpress/ - stateful deployment of mysql and wordpress using persistent storage with various service options
+- apps/webapp-color/ - simple flask python app with various service types (ingress,httpproxy,lb for testing contour)
+- apps/kuard/ - simple example stateless app with service options (note Kuard container appears to have disappeared)
 - scripts - helpful scripts to use
-- wordpress/ - stateful deployment of mysql and wordpress using persistent storage with various service options
 
 
 

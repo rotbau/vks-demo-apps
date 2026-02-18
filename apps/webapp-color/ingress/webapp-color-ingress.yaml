@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webapp-color-ingress
+  namespace: default
+  annotations:
+    projectcontour.io/ingress.class: contour
+spec:
+  rules:
+  - host: webapp.ing.vdoubleb.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: webapp-color-service
+            port:
+              number: 80
+#  tls:
+#    - hosts:
+#        - webapp.vdoubleb.com
+#    secretName: webapp-color-tls-secret

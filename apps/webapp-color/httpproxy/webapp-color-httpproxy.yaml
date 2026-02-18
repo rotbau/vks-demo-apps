@@ -1,0 +1,14 @@
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: webapp-color-httpproxy
+  namespace: default
+spec:
+  virtualhost:
+    fqdn: webapp.ing.vdoubleb.com
+  routes:
+    - conditions:
+        - prefix: /
+      services:
+        - name: webapp-color-service
+          port: 80
