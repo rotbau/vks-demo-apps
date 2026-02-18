@@ -1,6 +1,11 @@
 # VMService Jumpbox
 
-To connect to VKS nodes in an NSX backed environment (segment or vpc) you will need a jumpbox inside the vSphere namespace since VKS nodes are non-routable outside NSX.  There are also some DFW rules between vSphere Namespaces, which is why you may need a jumpbox to be deployed to each.
+To connect to VKS nodes in an NSX backed environment (segment or vpc) you will need a jumpbox inside the vSphere namespace since VKS nodes are non-routable outside NSX.  There are also some DFW rules between vSphere Namespaces, which is why you may need a jumpbox or some localized method to access the nodes.
+
+## Options
+1. VMService VM Jumpbox - deploys VM to vSphere Namespace with public service for troubleshooting / node access 
+2. VMService LoadBalancer to Node - deploys L4 public loadbalancer to access VKS nodes via SSH
+3. Address Binding - 1:1 rule in NSX which is advertised out T1 (maybe 9.x only)
 
 ## VMService Jumpbox Process
 
@@ -47,7 +52,7 @@ jumpbox-vmservices                    LoadBalancer   10.96.0.97    10.0.104.9   
 ```
 14. You can not connect to the VM using the EXTERNAL-IP on any allowed ports of the VirtualMachineService section of jumpbox.yaml (provided there is something listening on the VM itself).
 
-## VMService to VKS Node
+## VMService Loadbalancer to VKS Node
 
 This second option is a little different.  You can just create an external service for SSH to a node and use VM labels to determine which node you go to.
 
