@@ -6,11 +6,11 @@
 #   leafDuration: 720h
 #   leafRenewBefore: 360h
  contour:
-   configFileContents:
-     gateway:
-       gatewayRef:
-         name: contour
-         namespace: tanzu-system-ingress
+#   configFileContents:                          # uncomment this section for gatewayAPI support
+#     gateway:
+#       gatewayRef:
+#         name: contour                          # This must MATCH the name of the gateway you create.  We only support 1 gateway and port 80/443 only
+#         namespace: tanzu-system-ingress
 #   disableGRPCRoutes: true
 #   listenIPFamily: IPv6
    logLevel: info

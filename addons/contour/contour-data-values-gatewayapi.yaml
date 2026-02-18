@@ -1,0 +1,30 @@
+---
+infrastructure_provider: vsphere
+namespace: tanzu-system-ingress
+contour:
+  configFileContents:
+    gateway:
+      gatewayRef:
+        name: contour                      # This must MATCH the name of the gateway you create.  We only support 1 gateway and port 80/443 only
+        namespace: tanzu-system-ingress
+  useProxyProtocol: false
+  replicas: 2
+  logLevel: info
+envoy:
+  service:
+    type: LoadBalancer
+    annotations: {}
+    externalTrafficPolicy: Cluster
+    disableWait: false
+  hostPorts:
+    enable: true
+    http: 80
+    https: 443
+  hostNetwork: false
+  terminationGracePeriodSeconds: 300
+  logLevel: info
+certificates:
+  caDuration: 8760h
+  caRenewBefore: 720h
+  leafDuration: 720h
+  leafRenewBefore: 360h
