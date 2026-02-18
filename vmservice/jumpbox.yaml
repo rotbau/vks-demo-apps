@@ -1,0 +1,73 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jumpbox-pvc
+  namespace: test-ns               # vSphere Namespace
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 15Gi
+  storageClassName: vsan-default-storage-policy
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: jumpbox-configmap
+    namespace: test-ns                  # vSphere Namespace
+data:
+  hostname: jumpbox01
+  public-keys: ssh-rsa ABCD123456...    # SSH public key
+  user-data: IN30vhjv949.......         # Base64 encoded cloud-init file (cat jumpbox-cloud-init.yaml | base64 -w 0)
+---
+apiVersion: vmoperator.vmware.com/v1alpha1
+kind: VirtualMachine
+metadata:
+  labels:
+    vm-selector: jumpbox01
+  name: jumpbox01
+  namespace: test-ns                    # vSphere Namespace
+spec:
+  imageName: vmi-f86eff0f50f46c724
+  className: best-effort-small
+  powerState: poweredOn
+  storageClass: vsan-default-storage-policy
+  advancedOptions:
+    defaultVolumeProvisioningOptions:
+      thinProvisioned: true
+  volumes:
+  - name: jumpbox-vol
+    persistentVolumeClaim:
+      claimName: jumpbox-pvc
+  networkInterfaces:
+#  - networkType: vsphere-distributed
+#    networkName: wkld0
+  - networkType: nsx-t
+  readinessProbe:
+    tcpSocket:
+      port: 22
+  vmMetadata:
+    configMapName: jumpbox-configmap
+    transport: CloudInit
+---
+apiVersion: vmoperator.vmware.com/v1alpha1
+kind: VirtualMachineService
+metadata:
+  name: jumpbox-vmservice
+  namespace: test-ns
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 7681
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: 22
+  selector:
+    vm-selector: jumpbox01
+  type: LoadBalancer
