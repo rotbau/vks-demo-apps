@@ -1,0 +1,33 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: vksc01
+  namespace: test-ns
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["198.51.100.0/12"]
+    serviceDomain: "cluster.local"
+  topology:
+    classRef:
+      name: builtin-generic-v3.6.0
+      namespace: vmware-system-vks-public
+    version: v1.35
+    controlPlane:
+      replicas: 1
+    workers:
+      machineDeployments:
+        - class: node-pool
+          name: node-pool-1
+          replicas: 1
+    variables:
+      - name: vmClass
+        value: best-effort-large
+      - name: storageClass
+        value: vsan-default-storage-policy
+      - name: bootstrapAddons
+        value:
+          cniRef:
+            name: cilium

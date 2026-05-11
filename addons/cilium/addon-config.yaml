@@ -1,0 +1,17 @@
+apiVersion: addons.kubernetes.vmware.com/v1alpha1
+kind: AddonConfig
+metadata:
+  annotations:
+    clusteraddon.addons.kubernetes.vmware.com/owned-for-deletion: "true"
+  name: <clustername>
+  namespace: <vsphere-namespace>
+spec:
+  values:
+    hubble:
+      enabled: true
+      relay:
+        enabled: true
+      ui:
+        enabled: true
+        service:
+          type: LoadBalancer    # LoadBalancer | NodePort | ClusterIP
