@@ -5,6 +5,8 @@ metadata:
   namespace: argocd-shared
 spec:
   version: 3.0.19+vmware.1-vks.1
+  controller:
+    replicas: 1
   applicationSet:
     enabled: true
     replicas: 1
@@ -15,4 +17,5 @@ spec:
       p, role:cluster-manager, clusters, get, *, allow
       p, role:cluster-manager, clusters, create, *, allow
       p, role:cluster-manager, clusters, update, *, allow
+      p, role:cluster-manager, clusters, delete, *, allow
       g, cluster-registrar, role:cluster-manager
