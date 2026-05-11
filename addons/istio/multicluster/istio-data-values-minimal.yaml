@@ -1,0 +1,27 @@
+ istio:
+   namespace: istio-system
+   enableStrictMTLS: true
+   gateways:
+     egress:
+       enabled: true
+       replicas: 1
+     ingress:
+       enabled: false
+   meshConfig:
+     accessLogFile: /dev/stdout
+     connectTimeout: 10s
+     enableDNSProxy: false
+     enablePrometheusMerge: true
+     enableTracing: true
+     externalIstiod: false
+     ingressControllerMode: STRICT
+     ingressSelector: ingressgateway
+     meshID: "mesh01"
+     meshMTLS:
+       minProtocolVersion: TLSV1_2
+     multiCluster:
+       clusterName: "vks-ist01"
+       clusterProfile: "primary"
+       enabled: true
+     network: "vks-ist01-net"
+     trustDomain: cluster.local

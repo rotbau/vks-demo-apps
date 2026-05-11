@@ -54,14 +54,6 @@ EOF
 ```
 7. Create Intermediate CA cert for istio
 ```
-kubectl create secret generic cacerts -n istio-system --context=cluster1 \
-  --from-file=ca-cert.pem=cluster1-ca-cert.pem \
-  --from-file=ca-key.pem=cluster1-ca-key.pem \
-  --from-file=root-cert.pem=root-cert.pem \
-  --from-file=cert-chain.pem=cluster1-cert-chain.pem
-```
-OR  
-```
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -71,19 +63,12 @@ metadata:
 spec:
   isCA: true
   commonName: istio-ca
-  secretName: cacerts # This creates the secret named 'cacerts'
-  duration: 8760h 
-  renewBefore: 720h 
+  secretName: cacerts
+  duration: 8760h  # Update it with a desired duration
+  renewBefore: 720h # Update it with a desired time to renew the Certificate.
   issuerRef:
     name: istio-ca-root
     kind: ClusterIssuer
-  # This section instructs cert-manager to format the secret for Istio
-  secretTemplate:
-    data:
-      ca-cert.pem: "{{ .tls.crt }}"
-      ca-key.pem: "{{ .tls.key }}"
-      root-cert.pem: "{{ .ca.crt }}"
-      cert-chain.pem: "{{ .tls.crt }}{{ .ca.crt }}"
 EOF
 ```
 
@@ -95,74 +80,14 @@ vcf package available get istio.kubernetes.vmware.com/1.28.5+vmware.1-vks.1 --de
 2. Modify data-values file for Cluster 1
 ```
  istio:
-#   ambientMode:
-#   enabled: false
-#     ztunnel:
-#       resources:
-#         limits:
-#           cpu: ""
-#           memory: ""
-#         requests:
-#           cpu: 200m
-#           memory: 512Mi
-#   enableGatewayAPIInference: false
+   namespace: istio-system
    enableStrictMTLS: true
    gateways:
      egress:
-       autoscaling:
-         enabled: false
-         maxReplicas: 5
-         minReplicas: 1
        enabled: true
-#       namespace: istio-egress
-#       namespaceLimitRange:
-#         defaultLimits:
-#           cpu: ""
-#           memory: ""
-#         defaultRequests:
-#           cpu: 100m
-#           memory: 128Mi
-#       priorityClassName: ""
        replicas: 1
-#       resources:
-#         limits:
-#           cpu: 2000m
-#           memory: 1024Mi
-#         requests:
-#           cpu: 100m
-#           memory: 128Mi
      ingress:
-       autoscaling:
-         enabled: false
-         maxReplicas: 5
-         minReplicas: 1
        enabled: false
-#       namespace: istio-ingress
-#       namespaceLimitRange:
-#         defaultLimits:
-#           cpu: ""
-#           memory: ""
-#         defaultRequests:
-#           cpu: 100m
-#           memory: 128Mi
-#       priorityClassName: ""
-#       replicas: 1
-#       resources:
-#         limits:
-#           cpu: 2000m
-#           memory: 1024Mi
-#         requests:
-#           cpu: 100m
-#           memory: 128Mi
-#   istioCNI:
-#     enabled: true
-#     resources:
-#       limits:
-#         cpu: ""
-#         memory: ""
-#       requests:
-#         cpu: 100m
-#         memory: 100Mi
    meshConfig:
      accessLogFile: /dev/stdout
      connectTimeout: 10s
@@ -179,57 +104,8 @@ vcf package available get istio.kubernetes.vmware.com/1.28.5+vmware.1-vks.1 --de
        clusterName: "vks-ist01"
        clusterProfile: "primary"
        enabled: true
-#       remotePilotAddress: ""
      network: "vks-ist01-net"
-#     proxy:
-#       resources:
-#         limits:
-#           cpu: 2000m
-#           memory: 1024Mi
-#         requests:
-#           cpu: 100m
-#           memory: 128Mi
      trustDomain: cluster.local
-#     trustDomainAliases: []
-#     waypoint:
-#       resources:
-#         limits:
-#           cpu: "2"
-#           memory: 1Gi
-#         requests:
-#           cpu: 100m
-#           memory: 128Mi
-   namespace: istio-system
-#   namespaceLimitRange:
-#     defaultLimits:
-#       cpu: ""
-#       memory: ""
-#     defaultRequests:
-#       cpu: 100m
-#       memory: 64Mi
-#   pilot:
-#     autoscaling:
-#       enabled: false
-#       maxReplicas: 5
-#       minReplicas: 2
-#     priorityClassName: ""
-#     replicas: 2
-#     resources:
-#       limits:
-#         cpu: ""
-#         memory: ""
-#       requests:
-#         cpu: 500m
-#         memory: 2048Mi
-#   support:
-#     priorityClassName: ""
-#     resources:
-#       limits:
-#         cpu: 250m
-#         memory: 256Mi
-#       requests:
-#         cpu: 100m
-#         memory: 64Mi
 ```
 3. Install Istio on Primary Cluster
 ```
@@ -239,10 +115,13 @@ vcf package install istio -p istio.kubernetes.vmware.com -v 1.28.5+vmware.1-vks.
 ```
 4. Create east-west gateway on Cluster 1
 ```
-./eastwest-gw.sh --network vks-ist01-net | istioctl install -y -f -
+./eastwest-gw.sh \
+   --network vks-ist01-net | \
+   istioctl --context="${CTX_CLUSTER1}" install -y -f -
 ```
 5. Expose Istiod via East-West Gateway
 ```
+kubectl apply --context="${CTX_CLUSTER1}" -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -298,6 +177,29 @@ spec:
         host: istiod.istio-system.svc.cluster.local
         port:
           number: 443
+EOF
+```
+6. Create a Cross Network Gateway on Cluster 1
+```
+kubectl apply --context="${CTX_CLUSTER1}" -f - <<EOF
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: cross-network-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: eastwestgateway
+  servers:
+    - port:
+        number: 15443
+        name: tls
+        protocol: TLS
+      tls:
+        mode: AUTO_PASSTHROUGH
+      hosts:
+        - "*.local"
+EOF
 ```
 ## Install Istio on Second Cluster
 1. Repeat steps 2-7 in the prerequisites section using the same CA key and pem you generated in step 1.  Multi-cluster istio needs to have a shared CA to establish trust.
@@ -328,14 +230,13 @@ vcf package install istio -p istio.kubernetes.vmware.com -v 1.28.5+vmware.1-vks.
 ```
 4. Install East-West Gateway on Cluster 2
 ```
-./eastwest-gw.sh --network vks-ist02-net | istioctl install -y -f -
-
-From Gemini (not sure correct)
-samples/multicluster/gen-eastwest-gateway.sh \
-    --mesh mesh01 --cluster vks-ist02 --network vks-ist01-net > eastwest-gateway.yaml
+./eastwest-gw.sh \
+   --network vks-ist02-net | \
+   istioctl --context="${CTX_CLUSTER2}" install -y -f -
 ```
 5. Expose Istiod via East-West Gateway
 ```
+kubectl apply --context="${CTX_CLUSTER2}" -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -391,10 +292,12 @@ spec:
         host: istiod.istio-system.svc.cluster.local
         port:
           number: 443
+EOF
 ```
 ## Expose Services on Both Clusters
 1. Create cross-network-gateway yaml
 ```
+cat <<EOF > crossnetworkgateway.yaml
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -411,49 +314,41 @@ spec:
         mode: AUTO_PASSTHROUGH
       hosts:
         - "*.local"
+EOF
 ```
 2. Apply cross-network-gateway on Cluster 1
 ```
-kubectl apply -f cross-network-gateway
+kubectl apply --context="${CTX_CLUSTER1}" -f cross-network-gateway.yaml
 ```
 3. Apply cross-network-gateway on Cluster 2
 ```
-kubectl apply -f cross-network-gateway
+kubectl apply --context="${CTX_CLUSTER2}" -f cross-network-gateway.yaml
 ```
 ## Enable Endpoint Discovery
 
-Note Gemini suggest adding label but not sure
+1. Create the remote secret for cluster 1 on cluster 2
 ```
-metadata:
-  annotations:
-    networking.istio.io/cluster: vks-ist01
-  labels:
-    istio/multiCluster: "true"
-    topology.istio.io/network: vks-ist01-net  # <--- ADD THIS LINE
-  name: istio-remote-secret-vks-ist01
-  namespace: istio-system
-  ```
-
-1. Create the remote secret for cluster 1
+istioctl create-remote-secret \
+  --context="${CTX_CLUSTER1}" \
+  --name=vks-ist01 | \
+  kubectl apply -f - --context="${CTX_CLUSTER2}"
 ```
-istioctl create-remote-secret  \
-  --name=vks-ist01 
+2. Create the remote secret for cluster 2 on cluster 1
 ```
-2. Create the remote secret for cluster 2
-```
-istioctl create-remote-secret  \
-  --name=vks-ist02 
+istioctl create-remote-secret \
+  --context="${CTX_CLUSTER2}" \
+  --name=vks-ist02 | \
+  kubectl apply -f - --context="${CTX_CLUSTER1}"
 ```
 3. Check Sync Status (run from both clusters)
 ```
-istioctl remote-clusters
+istioctl remote-clusters (notice syned status)
 ```
-
 NAME          SECRET                                         STATUS     ISTIOD
-vks-ist02                                                    synced     istiod-65b49c5784-96ngm
-vks-ist01     istio-system/istio-remote-secret-vks-ist01     synced     istiod-65b49c5784-96ngm
-vks-ist02                                                    synced     istiod-65b49c5784-jvmt7
-vks-ist01     istio-system/istio-remote-secret-vks-ist01     synced     istiod-65b49c5784-jvmt7
+vks-ist01                                                    synced     istiod-54486659f6-4wjjb
+vks-ist02     istio-system/istio-remote-secret-vks-ist02     synced     istiod-54486659f6-4wjjb
+vks-ist01                                                    synced     istiod-54486659f6-kscsb
+vks-ist02     istio-system/istio-remote-secret-vks-ist02     synced     istiod-54486659f6-kscsb
 
 ## Test App
 1. Create Namespace on both clusters
@@ -461,19 +356,18 @@ vks-ist01     istio-system/istio-remote-secret-vks-ist01     synced     istiod-6
 kubectl create --context="${CTX_CLUSTER1}" ns sample
 kubectl create --context="${CTX_CLUSTER2}" ns sample
 ```
-2. Enable Istio injection in each namespace
+2. Enable Istio injection and PSA (may be optional) in each namespace
 ```
-kubectl label --context="${CTX_CLUSTER1}" namespace sample \
-    istio-injection=enabled
-kubectl label --context="${CTX_CLUSTER2}" namespace sample \
-    istio-injection=enabled
-```
-3. Set PSA (optional depending on if PSA is enabled on your cluster.  VKS ships with it on by default)
-```
-kubectl label --context="${CTX_CLUSTER1}" ns sample \
-    pod-security.kubernetes.io/enforce=privileged
-kubectl label --context="${CTX_CLUSTER2}" ns sample \
-    pod-security.kubernetes.io/enforce=privileged
+kubectl label namespace sample \
+    istio-injection=enabled \
+    topology.istio.io/network=vks-ist02-net \
+    pod-security.kubernetes.io/enforce=privileged \
+    --context="${CTX_CLUSTER1}" --overwrite
+kubectl label namespace sample \
+    istio-injection=enabled \
+    topology.istio.io/network=vks-ist02-net \
+    pod-security.kubernetes.io/enforce=privileged \
+    --context="${CTX_CLUSTER2}" --overwrite
 ```
 4. Install HelloWorld service in both clusters
 ```
@@ -490,11 +384,27 @@ kubectl apply --context="${CTX_CLUSTER1}" \
     -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/helloworld/helloworld.yaml \
     -l version=v1 -n sample
 ```
+```
+# Verify Status
+kubectl get pod --context="${CTX_CLUSTER1}" -n sample -l app=helloworld
+
+# Output
+NAME                             READY   STATUS    RESTARTS   AGE
+helloworld-v1-696f8879d6-kqp26   2/2     Running   0          29s
+```
 6. Deploy Helloworld-v2 to cluster 2
 ```
 kubectl apply --context="${CTX_CLUSTER2}" \
     -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/helloworld/helloworld.yaml \
     -l version=v2 -n sample
+```
+```
+# Verify Status
+kubectl get pod --context="${CTX_CLUSTER2}" -n sample -l app=helloworld
+
+# Output
+NAME                             READY   STATUS    RESTARTS   AGE
+helloworld-v2-59fc9f4558-78fbg   2/2     Running   0          76
 ```
 7. Deploy Curl appplication to both clusters
 ```
@@ -503,6 +413,11 @@ kubectl apply --context="${CTX_CLUSTER1}" \
 kubectl apply --context="${CTX_CLUSTER2}" \
     -f https://raw.githubusercontent.com/istio/istio/release-1.28/samples/curl/curl.yaml -n sample
 ```
+```
+# Verify Curl Status
+kubectl get pod --context="${CTX_CLUSTER1}" -n sample -l app=curl
+kubectl get pod --context="${CTX_CLUSTER2}" -n sample -l app=curl
+```
 8. Verify Traffic
 ```
 kubectl exec --context="${CTX_CLUSTER1}" -n sample -c curl \
@@ -510,131 +425,45 @@ kubectl exec --context="${CTX_CLUSTER1}" -n sample -c curl \
     app=curl -o jsonpath='{.items[0].metadata.name}')" \
     -- curl -sS helloworld.sample:5000/hello
 ```
+```
+# You should see v1 and v2 alternating but you may need to refresh multiple times
+Hello version: v1, instance: helloworld-v1-696f8879d6-kqp26
+Hello version: v2, instance: helloworld-v2-59fc9f4558-78fbg
+```
+```
+kubectl exec --context="${CTX_CLUSTER2}" -n sample -c curl \
+    "$(kubectl get pod --context="${CTX_CLUSTER2}" -n sample -l \
+    app=curl -o jsonpath='{.items[0].metadata.name}')" \
+    -- curl -sS helloworld.sample:5000/hello
+```
+```
+# You should see v1 and v2 alternating but you may need to refresh multiple times
+Hello version: v1, instance: helloworld-v1-696f8879d6-kqp26
+Hello version: v2, instance: helloworld-v2-59fc9f4558-78fbg
+```
 
-You should see it alternate between v1 and v2 services
-```
-Hello version: v2, instance: helloworld-v2-758dd55874-6x4t8
-Hello version: v1, instance: helloworld-v1-86f77cd7bd-cpxhv
-```
 
 ## Troubleshooting
-1. Check proxy config endpoints
+1. Check proxy config endpoints (note port 5000 instance is local cluster, port 15443 is remote cluster)
 ```
-istioctl proxy-config endpoints "$(kubectl get pod -l app=curl -n sample -o jsonpath='{.items[0].metadata.name}')" --context="${CTX_CLUSTER1}" -n sample | grep helloworld
-
-192.168.146.9:5000                                      HEALTHY     OK                outbound|5000||helloworld.sample.svc.cluster.local
-192.168.147.9:5000                                      HEALTHY     OK                outbound|5000||helloworld.sample.svc.cluster.local
-
+istioctl proxy-config endpoints "$(kubectl get pod -l app=curl -n sample -o jsonpath='{.items[0].metadata.name}')" - context="${CTX_CLUSTER1}" -n sample | grep helloworld
+10.0.116.9:15443                                        HEALTHY     OK                outbound|5000||helloworld.sample.svc.cluster.local
+192.168.145.6:5000                                      HEALTHY     OK 
 ```
 2. Check Network Labels between clusters
 ```
 kubectl get cm istio -n istio-system --context="${CTX_CLUSTER1}" -o jsonpath='{.data.mesh}' | grep network
 kubectl get cm istio -n istio-system --context="${CTX_CLUSTER2}" -o jsonpath='{.data.mesh}' | grep network
 ```
-3. Verify Pod has mes-network identified
+3. Verify Pod has mesh-network identified
 ```
 kubectl get pod -n sample -l app=helloworld -o jsonpath='{.items[0].metadata.labels}' --context="${CTX_CLUSTER2}"
 ```
-
-## Install Test App on Primary
-1. Enable Istio injection
+4. Check Cross-Network-Gateway
 ```
-kubectl label ns default istio-injection=enabled
+kubectl get --context="${CTX_CLUSTER1}" gateway.networking.istio.io cross-network-gateway -n istio-system
 ```
-2. Set PSA to allowed Priviledged
+5. Check Listeners
 ```
-kubectl label ns default pod-security.kubernetes.io/enforce=privileged
+istioctl proxy-config listener deployment/istio-eastwestgateway -n istio-system --port 15443 --context="${CTX_CLUSTER2}"
 ```
-3. Deploy Google Microservice Test Application
-https://github.com/GoogleCloudPlatform/microservices-demo
-```
- k apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/microservices-demo/refs/heads/main/release/kubernetes-manifests.yaml
- ```
- 4. Deploy Istio Entries for Shop
- ```
- https://raw.githubusercontent.com/GoogleCloudPlatform/microservices-demo/refs/heads/main/release/istio-manifests.yaml
- ```
-
-istioctl proxy-config routes deployment/istio-ingressgateway -n istio-ingress
-istioctl proxy-config routes deployment/istio-ingressgateway -n istio-ingress --name http.80 -o json
-istioctl analyze -n default
-istioctl proxy-config listener deployment/istio-ingressgateway -n istio-ingress --port 80 -o json
-istioctl proxy-status
-curl -vI http://shop.vdoubleb.com
-
-If using Gateway API instead you can also run
-kubectl get httproute frontend-route -n default -o yaml
-Look for the status section at the bottom. It should say Accepted: True and Programmed: True.
-
-## Create 443 Gateway for SSL
-```
-kubectl create secret tls shop-vdoubleb-cert \
-  --cert=path/to/cert.crt \
-  --key=path/to/cert.key \
-  -n istio-ingress
-```
-```
-apiVersion: networking.istio.io/v1beta1
-kind: Gateway
-metadata:
-  name: shared-gateway
-  namespace: istio-ingress
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  # HTTP Port 80
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*/shop.vdoubleb.com"
-  
-  # HTTPS Port 443
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
-    tls:
-      mode: SIMPLE # Standard TLS termination
-      credentialName: shop-vdoubleb-cert # Must match the Secret name above
-    hosts:
-    - "*/shop.vdoubleb.com"
-```
-
-1. Gateway CRD for app (or shared) in istio system
-2. Virtual Service in app ns
-
-## The Traffic Flow
-To visualize how these objects connect, follow the path of a request:
-
-User Request: Hits the External Load Balancer IP.
-
-Istio Ingress Gateway Service: Receives the traffic on a specific port.
-
-Gateway Resource: Validates that the host and port are allowed.
-
-VirtualService: Matches the URL path/headers and decides which internal K8s Service should handle it.
-
-Kubernetes Service: Routes the traffic to the specific Pods (optionally applying rules from a DestinationRule)
-
-1. The Core Istio Objects (The Configuration)
-These objects tell the Istio control plane how to handle incoming traffic at the edge of the mesh.
-
-Gateway: Acts as a load balancer at the edge of the mesh. It defines which ports (e.g., 80, 443) and protocols (HTTP, HTTPS, TCP) are open, and which hosts (e.g., api.example.com) are allowed to enter.
-
-VirtualService: This is the most critical object for routing. It links to a Gateway and defines the routing rules. For example, it can say "if the path starts with /v1, send traffic to the v1-service in Kubernetes."
-
-DestinationRule (Optional but Common): While not strictly required for basic exposure, it is used for "post-routing" logic. If you want to perform Canary deployments, configure TLS settings, or set Load Balancing policies (like Random vs. Round Robin), you need a DestinationRule.
-
-Key Differences to Note
-GatewayClassName: In your original YAML, you used a selector: istio: ingressgateway. In the Gateway API, Istio watches for Gateways that have gatewayClassName: istio. This automatically manages the deployment and service for the proxy.
-
-Namespace Boundaries: The Gateway API is "secure by default." In your original Istio Gateway, any VirtualService could bind to it. In the new Gateway, you must define allowedRoutes. If you don't include that section, an HTTPRoute in a different namespace will be ignored.
-
-Hostnames: In the HTTPRoute, hostnames is a top-level field, making it much easier to read than the nested hosts list in a VirtualService.
-
-BackendRefs: Instead of destination: host: ..., you use backendRefs. You don't need the full FQDN (.svc.cluster.local) if the service is in the same namespace as the HTTPRoute.
-
-https://oneuptime.com/blog/post/2026-02-24-how-to-manage-ca-certificates-across-multiple-clusters-in-istio/view
