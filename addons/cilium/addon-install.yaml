@@ -1,8 +1,8 @@
 apiVersion: addons.kubernetes.vmware.com/v1alpha1
 kind: AddonInstall
 metadata:
-  name: <clustername>-cilium                  # clustername-cilium (addon name)
-  namespace: <vsphere-namespace>              # vsphere-namespace
+  name: vks-cilium01-cilium           # <clustername>-cilium
+  namespace: test-ns                   
 spec:
   addonRef:
     name: cilium
@@ -11,5 +11,7 @@ spec:
       expression: cluster.cniRefName() == 'cilium' && version_in_range(cluster.spec.topology.version, '>=1.35.0')
     selector:
       matchLabels:
-        cluster.x-k8s.io/cluster-name: <clustername> #Cluster Name
+        cluster.x-k8s.io/cluster-name: vks-cilium01 #Cluster Name
+  stopMatchingBehavior: Retain
+
 

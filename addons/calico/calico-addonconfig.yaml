@@ -3,16 +3,10 @@ kind: AddonConfig
 metadata:
   annotations:
     clusteraddon.addons.kubernetes.vmware.com/owned-for-deletion: "true"
-  name: vks-cilium01-cilium
+  name: vks-calico01-calico           <clustername>-calico
   namespace: test-ns
 spec:
   values:
-    hubble:
-      enabled: true
-      relay:
-        enabled: true
-      ui:
-        enabled: true
-        service:
-          type: LoadBalancer
-
+    calico:
+      config:
+        vethMTU: 0

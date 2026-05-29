@@ -1,0 +1,51 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: vks-calico01
+  namespace: test-ns
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.156.0/20
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+    serviceDomain: cluster.local
+  topology:
+    classRef:
+      name: builtin-generic-v3.6.0
+      namespace: vmware-system-vks-public
+    version: v1.35.5---vmware.1-vkr.1
+    variables:
+      - name: vmClass
+        value: best-effort-small
+      - name: storageClass
+        value: vks-primary-sp
+      - name: bootstrapAddons
+        value:
+          cniRef:
+            name: calico
+            namespace: vmware-system-vks-public
+      - name: vsphereOptions
+        value:
+          persistentVolumes:
+            defaultStorageClass: vks-primary-sp
+      - name: kubernetes
+        value:
+          security:
+            podSecurityStandard:
+              deactivated: true
+    controlPlane:
+      replicas: 1
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=photon
+    workers:
+      machineDeployments:
+        - class: node-pool
+          name: vks-calico01-np-kjxw
+          replicas: 1
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=photon
